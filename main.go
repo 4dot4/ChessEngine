@@ -12,7 +12,8 @@ type Piece struct {
 }
 
 const (
-	Pawn typePiece = iota
+	SCALE float32   = 3
+	Pawn  typePiece = iota
 	Knight
 	Rook
 	Bisp
@@ -27,26 +28,12 @@ type Cell struct {
 	Color rl.Color
 }
 
-func main() {
-	rl.InitWindow(533, 533, "Maths chess")
-	spritesPositions := map[Piece]rl.Rectangle{
-		Piece{King, White}:   rl.Rectangle{0, 0, 66.66, 64.5},
-		Piece{Queen, White}:  rl.Rectangle{66.66, 0, 66.66, 64.5},
-		Piece{Bisp, White}:   rl.Rectangle{66.66 * 2, 0, 66.66, 64.5},
-		Piece{Knight, White}: rl.Rectangle{66.66 * 3, 0, 66.66, 64.5},
-		Piece{Rook, White}:   rl.Rectangle{66.66 * 4, 0, 66.66, 64.5},
-		Piece{Pawn, White}:   rl.Rectangle{66.66*5 - 10, 0, 66.66, 64.5},
+func resetBoardColors() {
 
-		Piece{King, Black}:   rl.Rectangle{0, 64.5, 66.66, 64.5},
-		Piece{Queen, Black}:  rl.Rectangle{66.66, 64.5, 66.66, 64.5},
-		Piece{Bisp, Black}:   rl.Rectangle{66.66 * 2, 64.5, 66.66, 64.5},
-		Piece{Knight, Black}: rl.Rectangle{66.66 * 3, 64.5, 66.66, 64.5},
-		Piece{Rook, Black}:   rl.Rectangle{66.66 * 4, 64.5, 66.66, 64.5},
-		Piece{Pawn, Black}:   rl.Rectangle{66.66 * 5, 64.5, 66.66, 64.5},
-	}
+}
+func initBoard() [8][8]Cell {
 	var invert = -1
 	var board [8][8]Cell
-	sprites := rl.LoadTexture("sprites/pieces.png")
 	for y, _ := range board {
 
 		for x, _ := range board[y] {
@@ -80,28 +67,81 @@ func main() {
 	for i := 0; i < 8; i++ {
 		board[1][i].Piece = Piece{Pawn, Black}
 	}
+	board[7][0].Piece = Piece{Rook, White}
+	board[7][1].Piece = Piece{Knight, White}
+	board[7][2].Piece = Piece{Bisp, White}
+	board[7][3].Piece = Piece{Queen, White}
+	board[7][4].Piece = Piece{King, White}
+	board[7][5].Piece = Piece{Bisp, White}
+	board[7][6].Piece = Piece{Knight, White}
+	board[7][7].Piece = Piece{Rook, White}
+	for i := 0; i < 8; i++ {
+		board[6][i].Piece = Piece{Pawn, White}
+	}
+	return board
+}
+func main() {
+	rl.InitWindow(600, 600, "Maths chess")
+	spritesPositions := map[Piece]rl.Rectangle{
+		{Pawn, White}:   {0, 0, 16, 32},
+		{Knight, White}: {16, 0, 16, 32},
+		{Rook, White}:   {16 * 2, 0, 16, 32},
+		{Bisp, White}:   {16 * 3, 0, 16, 32},
+		{Queen, White}:  {16 * 4, 0, 16, 32},
+		{King, White}:   {16 * 5, 0, 16, 32},
+
+		{Pawn, Black}:   {0, 0, 16, 32},
+		{Knight, Black}: {16, 0, 16, 32},
+		{Rook, Black}:   {16 * 2, 0, 16, 32},
+		{Bisp, Black}:   {16 * 3, 0, 16, 32},
+		{Queen, Black}:  {16 * 4, 0, 16, 32},
+		{King, Black}:   {16 * 5, 0, 16, 32},
+	}
+	board := initBoard()
+	blackSprites := rl.LoadTexture("sprites/BlackPieces.png")
+	whiteSprites := rl.LoadTexture("sprites/WhitePieces.png")
 	rl.SetTargetFPS(60)
+	holding := struct {
+		State bool
+		Piece Piece
+	}{
+		State: false,
+	}
 
 	for !rl.WindowShouldClose() {
-		for y, _ := range board {
-			for x, _ := range board[y] {
-				if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
 
-					if rl.CheckCollisionPointRec(rl.GetMousePosition(), rl.Rectangle{float32(x) * 66.66, float32(y) * 66.66, 66.66, 66.66}) {
-						board[y][x].Color = rl.Red
+		for y, _ := range board {
+			for x, v := range board[y] {
+				if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
+					if holding.State {
+						if rl.CheckCollisionPointRec(rl.GetMousePosition(), rl.Rectangle{float32(x) * 75, float32(y) * 75, 75, 75}) {
+							board[y][x].Piece = holding.Piece
+							holding.State = false
+						}
+					}
+					if rl.CheckCollisionPointRec(rl.GetMousePosition(), rl.Rectangle{float32(x) * 75, float32(y) * 75, 75, 75}) {
+						holding.Piece = v.Piece
+						holding.State = true
 					}
 				}
 			}
 		}
+
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.RayWhite)
 		for y, _ := range board {
 			for x, v := range board[y] {
-				rl.DrawRectangleRec(rl.Rectangle{float32(x) * 66.66, float32(y) * 66.66, 66.66, 66.66}, v.Color)
-				rl.DrawTextureRec(sprites, spritesPositions[v.Piece], rl.Vector2{float32(x) * 66.66, float32(y) * 64.5}, rl.White)
+				rl.DrawRectangleRec(rl.Rectangle{float32(x) * 75, float32(y) * 75, 75, 75}, v.Color)
+				switch v.Piece.ColorPiece {
+				case White:
+					rl.DrawTexturePro(whiteSprites, spritesPositions[v.Piece], rl.Rectangle{float32(x)*75 + 12, float32(y)*75 - 20, 16 * SCALE, 32 * SCALE}, rl.Vector2{0, 0}, 0, rl.RayWhite)
+				case Black:
+					rl.DrawTexturePro(blackSprites, spritesPositions[v.Piece], rl.Rectangle{float32(x)*75 + 12, float32(y)*75 - 20, 16 * SCALE, 32 * SCALE}, rl.Vector2{0, 0}, 0, rl.RayWhite)
+
+				}
+				// rl.DrawTexturePro(blackSprites, spritesPositions[v.Piece], rl.Rectangle{float32(x) * 75, float32(y) * 75, 16 * SCALE, 32 * SCALE}, rl.Vector2{0, 0}, 0, rl.RayWhite)
 			}
 		}
-
 		rl.EndDrawing()
 	}
 	rl.CloseWindow()
